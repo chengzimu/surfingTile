@@ -1,0 +1,36 @@
+name: Build Android APK
+
+# 定义触发条件：推送到main分支，或手动触发
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # 允许在GitHub Actions页面手动点击运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. 检出项目代码
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2. 设置Java环境
+    - name: Set up JDK
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    # 3. 构建APK (关键步骤)
+    - name: Build with Gradle
+      run: ./gradlew assembleDebug
+      # 如果想构建Release版本，请使用：./gradlew assembleRelease
+      # 请注意Release版本需要签名配置，下面会提到
+
+    # 4. 上传构建产物（APK文件）
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug-apk
+        path: app/build/outputs/apk/debug/*.apk
