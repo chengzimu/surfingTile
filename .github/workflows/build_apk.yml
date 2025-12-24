@@ -1,36 +1,55 @@
-name: Build Android APK
+name: Build Dev APK
 
-# 定义触发条件：推送到main分支，或手动触发
+# 定义触发条件：推送到 dev 分支时自动构建，也可手动触发
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch: # 允许在GitHub Actions页面手动点击运行
+    branches: [ "dev" ] # 核心修改：指定 dev 分支
+  pull_request:
+    branches: [ "dev" ]
+  workflow_dispatch: # 允许在 GitHub Actions 页面手动触发工作流
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # 在最新版 Ubuntu 环境中运行
 
     steps:
-    # 1. 检出项目代码
-    - name: Checkout repository
+    # 1. 检出（下载）dev 分支的代码
+    - name: Checkout dev branch code
       uses: actions/checkout@v4
+      with:
+        ref: 'dev' # 明确指定检出 dev 分支
 
-    # 2. 设置Java环境
-    - name: Set up JDK
+    # 2. 设置 Java 开发环境
+    - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. 构建APK (关键步骤)
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
-      # 如果想构建Release版本，请使用：./gradlew assembleRelease
-      # 请注意Release版本需要签名配置，下面会提到
+    # 3. （可选但推荐）缓存 Gradle 依赖，大幅加速后续构建
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
 
-    # 4. 上传构建产物（APK文件）
+    # 4. 赋予 gradlew 执行权限（在 Linux/macOS 环境中通常需要）
+    - name: Make gradlew executable
+      run: chmod +x ./gradlew
+
+    # 5. 执行 Gradle 命令构建 Debug 版 APK
+    - name: Build Debug APK with Gradle
+      run: ./gradlew assembleDebug
+      # 此命令会生成未签名的调试版 APK，可直接安装测试
+
+    # 6. 上传构建产物到工作流运行记录，供下载
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
       with:
         name: app-debug-apk
         path: app/build/outputs/apk/debug/*.apk
+        # 注意：如果你的应用模块不叫 'app'，请修改为正确的路径，例如 'yourmodule/build/outputs/apk/debug/*.apk'
