@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">SurfingTile</string>
+    <string name="tile_label">Surfing</string>
+</resources>
